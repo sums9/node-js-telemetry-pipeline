@@ -1,3 +1,4 @@
+require('dotenv').config();
 // 1. Bypass local certificate verification for the Cosmos Emulator
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
@@ -11,13 +12,15 @@ const { CosmosClient } = require("@azure/cosmos"); // Added Cosmos SDK
 // CONFIGURATION & CREDENTIALS
 // ==========================================
 // Azure IoT Hub Configuration
-// Change line 14 to look like this (Remove your actual key string):
-const iotHubConnectionString = 'HostName=YOUR_HUB_NAME.azure-devices.net;DeviceId=YOUR_DEVICE_ID;SharedAccessKey=YOUR_SECRET_KEY_PLACEHOLDER';const azureClient = Client.fromConnectionString(iotHubConnectionString, Mqtt);
+const iotHubConnectionString = process.env.IOT_HUB_CONNECTION_STRING;
 
 // Local Cosmos DB Emulator Configuration
 const cosmosEndpoint = "https://localhost:8081/";
-const cosmosKey = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="; // Removed trailing semicolon
+const cosmosKey = process.env.COSMOS_PRIMARY_KEY;
 const cosmosClient = new CosmosClient({ endpoint: cosmosEndpoint, key: cosmosKey });
+
+// 🛠️ FIX: Initialize the missing azureClient variable using your connection string
+const azureClient = Client.fromConnectionString(iotHubConnectionString, Mqtt);
 
 let cosmosContainer;
 
@@ -78,7 +81,7 @@ wss.on('connection', function connection(ws) {
             }
 
             // =======================================================
-            // 🔥 NEW: BROADCAST TO DASHBOARD
+            // 🔥 BROADCAST TO DASHBOARD
             // Send the data package to any webpage listening on port 8080
             // =======================================================
             wss.clients.forEach(function each(client) {
