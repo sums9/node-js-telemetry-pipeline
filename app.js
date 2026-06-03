@@ -11,8 +11,8 @@ const { CosmosClient } = require("@azure/cosmos"); // Added Cosmos SDK
 // CONFIGURATION & CREDENTIALS
 // ==========================================
 // Azure IoT Hub Configuration
-const iotHubConnectionString = 'HostName=vit-telemetry-hub-sumaiya.azure-devices.net;DeviceId=ESP32_SIMULATED_01;SharedAccessKey=edYG1JzfwmIQB/2Iqo0cvxlgFMwFOzhpD3WDjXf5ImY=';
-const azureClient = Client.fromConnectionString(iotHubConnectionString, Mqtt);
+// Change line 14 to look like this (Remove your actual key string):
+const iotHubConnectionString = 'HostName=YOUR_HUB_NAME.azure-devices.net;DeviceId=YOUR_DEVICE_ID;SharedAccessKey=YOUR_SECRET_KEY_PLACEHOLDER';const azureClient = Client.fromConnectionString(iotHubConnectionString, Mqtt);
 
 // Local Cosmos DB Emulator Configuration
 const cosmosEndpoint = "https://localhost:8081/";
