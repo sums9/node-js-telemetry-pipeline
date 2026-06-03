@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telemetry Live Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+    <div class="container mx-auto px-6 py-8">
+        <header class="mb-8 flex justify-between items-center border-b border-slate-800 pb-4">
+            <div>
+                <h1 class="text-3xl font-extrabold tracking-tight text-white">HIL Telemetry Pipeline</h1>
+                <p class="text-slate-400 mt-1">Real-time local storage & cloud ingestion monitoring</p>
+            </div>
+            <div id="status" class="px-3 py-1 rounded-full text-sm font-semibold bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse">
+                Disconnected
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-slate-800/50 border border-slate-700/50 p-6 rounded-2xl shadow-xl backdrop-blur-sm">
+                <p class="text-slate-400 font-medium uppercase tracking-wider text-xs">Current Temperature</p>
+                <div class="flex items-baseline mt-4">
+                    <span id="temp-val" class="text-5xl font-black text-amber-400">--</span>
+                    <span class="text-2xl font-bold text-slate-400 ml-1">°C</span>
+                </div>
+            </div>
+            <div class="bg-slate-800/50 border border-slate-700/50 p-6 rounded-2xl shadow-xl backdrop-blur-sm">
+                <p class="text-slate-400 font-medium uppercase tracking-wider text-xs">Current Humidity</p>
+                <div class="flex items-baseline mt-4">
+                    <span id="humidity-val" class="text-5xl font-black text-cyan-400">--</span>
+                    <span class="text-2xl font-bold text-slate-400 ml-1">%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-800/50 border border-slate-700/50 p-6 rounded-2xl shadow-xl">
+            <h3 class="text-lg font-bold mb-4 text-white">Live Environmental Analytics Stream</h3>
+            <div class="h-80 w-full">
+                <canvas id="telemetryChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Chart.js
+        const ctx = document.getElementById('telemetryChart').getContext('2d');
+        const telemetryChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], // Timestamps go here
+                datasets: [
+                    {
+                        label: 'Temperature (°C)',
+                        data: [],
+                        borderColor: '#fbbf24',
+                        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Humidity (%)',
+                        data: [],
+                        borderColor: '#22d3ee',
+                        backgroundColor: 'rgba(34, 211, 238, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                    y: { type: 'linear', display: true, position: 'left', grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                    y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#94a3b8' } }
+                },
+                plugins: { legend: { labels: { color: '#fff', font: { weight: 'bold' } } } }
+            }
+        });
+
+        // Establish WebSocket Connection to Backend
+        const ws = new WebSocket('ws://localhost:8080');
+        const statusDiv = document.getElementById('status');
+
+        ws.onopen = () => {
+            statusDiv.textContent = "Live Stream Active";
+            statusDiv.className = "px-3 py-1 rounded-full text-sm font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+        };
+
+        ws.onclose = () => {
+            statusDiv.textContent = "Disconnected";
+            statusDiv.className = "px-3 py-1 rounded-full text-sm font-semibold bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse";
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // Ignore messages that might be echo requests or empty payloads
+            if (!data.temperature || !data.humidity) return;
+
+            // Update big numbers
+            document.getElementById('temp-val').textContent = data.temperature;
+            document.getElementById('humidity-val').textContent = data.humidity;
+
+            // Format time string for graph label
+            const timeLabel = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            // Append data to chart arrays
+            telemetryChart.data.labels.push(timeLabel);
+            telemetryChart.data.datasets[0].data.push(data.temperature);
+            telemetryChart.data.datasets[1].data.push(data.humidity);
+
+            // Keep only the last 15 data points on screen so chart doesn't crowd up
+            if (telemetryChart.data.labels.length > 15) {
+                telemetryChart.data.labels.shift();
+                telemetryChart.data.datasets[0].data.shift();
+                telemetryChart.data.datasets[1].data.shift();
+            }
+
+            telemetryChart.update();
+        };
+    </script>
+</body>
+</html>
